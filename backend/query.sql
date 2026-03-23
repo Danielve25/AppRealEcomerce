@@ -1,3 +1,7 @@
+-- =======================================
+-- USUARIOS
+-- =======================================
+
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1 LIMIT 1;
 
@@ -14,25 +18,35 @@ values ($1, $2, $3, $4, $5)
 returning
     *;
 
--- name: CreateMovement :one
-insert into
-    inventory_movements (
-        user_id,
-        variant_id,
-        movement_type,
-        quantity,
-        reference,
-        reason
-    )
-values ($1, $2, $3, $4, $5, $6)
-returning
+-- name: GetUserByID :one
+SELECT * FROM users WHERE id = $1;
+
+-- name: UpdateUser :one
+UPDATE users
+SET
+    name = $2,
+    role_id = $3,
+    is_active = $4
+WHERE
+    id = $1
+RETURNING
     *;
+
+-- =======================================
+-- CATEGORÍAS
+-- =======================================
 
 -- name: createCategory :one
 insert into categories (name) values ($1) returning *;
 
 -- name: getCategories :many
 select * from categories;
+
+-- name: GetCategoryByID :one
+SELECT * FROM categories WHERE id = $1;
+
+-- name: GetSubCategories :many
+SELECT * FROM categories WHERE parent_id = $1;
 
 -- =======================================
 -- PRODUCTOS
@@ -49,28 +63,6 @@ INSERT INTO
         description
     )
 VALUES ($1, $2, $3)
-RETURNING
-    *;
--- name: CreateProductImage :one
-INSERT INTO
-    product_images (
-        product_id,
-        image_url,
-        is_primary,
-        display_order
-    )
-VALUES ($1, $2, $3, $4)
-RETURNING
-    *;
--- name: CreateProductVariant :one
-INSERT INTO
-    product_variants (
-        product_id,
-        sku,
-        attributes,
-        price
-    )
-VALUES ($1, $2, $3, $4)
 RETURNING
     *;
 
@@ -172,6 +164,69 @@ WHERE
     category_id = $1
     AND is_active = true;
 
+-- name: UpdateProduct :one
+UPDATE products
+SET
+    category_id = $2,
+    name = $3,
+    description = $4
+WHERE
+    id = $1
+RETURNING
+    *;
+
+-- name: DeleteProduct :exec
+UPDATE products SET is_active = false WHERE id = $1;
+
+-- =======================================
+-- IMÁGENES DE PRODUCTOS
+-- =======================================
+
+-- name: CreateProductImage :one
+INSERT INTO
+    product_images (
+        product_id,
+        image_url,
+        is_primary,
+        display_order
+    )
+VALUES ($1, $2, $3, $4)
+RETURNING
+    *;
+
+-- =======================================
+-- VARIANTES DE PRODUCTOS
+-- =======================================
+
+-- name: CreateProductVariant :one
+INSERT INTO
+    product_variants (
+        product_id,
+        sku,
+        attributes,
+        price
+    )
+VALUES ($1, $2, $3, $4)
+RETURNING
+    *;
+
+-- name: GetVariantByID :one
+SELECT * FROM product_variants WHERE id = $1;
+
+-- name: UpdateVariant :one
+UPDATE product_variants
+SET
+    price = $2,
+    attributes = $3
+WHERE
+    id = $1
+RETURNING
+    *;
+
+-- =======================================
+-- INVENTARIO
+-- =======================================
+
 -- name: CreateInventory :one
 INSERT INTO
     inventory (variant_id, stock)
@@ -182,6 +237,87 @@ SET
     stock = inventory.stock + EXCLUDED.stock
 RETURNING
     *;
+
+-- name: GetInventoryByVariant :one
+SELECT * FROM inventory WHERE variant_id = $1;
+
+-- name: UpdateInventoryStock :one
+UPDATE inventory
+SET
+    stock = $2,
+    updated_at = CURRENT_TIMESTAMP
+WHERE
+    variant_id = $1
+RETURNING
+    *;
+
+-- name: ReserveStock :one
+UPDATE inventory
+SET
+    reserved_stock = reserved_stock + $2
+WHERE
+    variant_id = $1
+    AND stock - reserved_stock >= $2
+RETURNING
+    *;
+
+-- name: ReleaseReservedStock :one
+UPDATE inventory
+SET
+    reserved_stock = reserved_stock - $2
+WHERE
+    variant_id = $1
+RETURNING
+    *;
+
+-- name: CheckStock :one
+SELECT stock, reserved_stock FROM inventory WHERE variant_id = $1;
+
+-- name: ConfirmStock :one
+UPDATE inventory
+SET
+    stock = stock - $2,
+    reserved_stock = reserved_stock - $2
+WHERE
+    variant_id = $1
+RETURNING
+    *;
+
+-- =======================================
+-- MOVIMIENTOS DE INVENTARIO
+-- =======================================
+
+-- name: CreateMovement :one
+insert into
+    inventory_movements (
+        user_id,
+        variant_id,
+        movement_type,
+        quantity,
+        reference,
+        reason
+    )
+values ($1, $2, $3, $4, $5, $6)
+returning
+    *;
+
+-- name: GetMovementsByVariant :many
+SELECT *
+FROM inventory_movements
+WHERE
+    variant_id = $1
+ORDER BY created_at DESC;
+
+-- name: GetMovementsByUser :many
+SELECT *
+FROM inventory_movements
+WHERE
+    user_id = $1
+ORDER BY created_at DESC;
+
+-- =======================================
+-- DIRECCIONES DE USUARIO
+-- =======================================
 
 -- name: GetUserAddresses :many
 SELECT *
@@ -217,6 +353,7 @@ VALUES (
     )
 RETURNING
     *;
+
 -- name: ClearDefaultAddress :exec
 UPDATE user_addresses
 SET
@@ -252,6 +389,7 @@ WHERE
     AND is_active = true
 RETURNING
     *;
+
 -- name: DeleteUserAddress :exec
 UPDATE user_addresses
 SET
@@ -260,97 +398,9 @@ WHERE
     id = $1
     AND user_id = $2;
 
--- name: GetInventoryByVariant :one
-SELECT * FROM inventory WHERE variant_id = $1;
--- name: UpdateInventoryStock :one
-UPDATE inventory
-SET
-    stock = $2,
-    updated_at = CURRENT_TIMESTAMP
-WHERE
-    variant_id = $1
-RETURNING
-    *;
-
--- name: ReserveStock :one
-UPDATE inventory
-SET
-    reserved_stock = reserved_stock + $2
-WHERE
-    variant_id = $1
-    AND stock - reserved_stock >= $2
-RETURNING
-    *;
-
--- name: ReleaseReservedStock :one
-UPDATE inventory
-SET
-    reserved_stock = reserved_stock - $2
-WHERE
-    variant_id = $1
-RETURNING
-    *;
-
--- name: GetMovementsByVariant :many
-SELECT *
-FROM inventory_movements
-WHERE
-    variant_id = $1
-ORDER BY created_at DESC;
-
--- name: GetMovementsByUser :many
-SELECT *
-FROM inventory_movements
-WHERE
-    user_id = $1
-ORDER BY created_at DESC;
-
--- name: GetUserByID :one
-SELECT * FROM users WHERE id = $1;
-
--- name: UpdateUser :one
-UPDATE users
-SET
-    name = $2,
-    role_id = $3,
-    is_active = $4
-WHERE
-    id = $1
-RETURNING
-    *;
-
--- name: GetCategoryByID :one
-SELECT * FROM categories WHERE id = $1;
-
--- name: GetSubCategories :many
-SELECT * FROM categories WHERE parent_id = $1;
-
--- name: UpdateProduct :one
-UPDATE products
-SET
-    category_id = $2,
-    name = $3,
-    description = $4
-WHERE
-    id = $1
-RETURNING
-    *;
-
--- name: DeleteProduct :exec
-UPDATE products SET is_active = false WHERE id = $1;
-
--- name: GetVariantByID :one
-SELECT * FROM product_variants WHERE id = $1;
-
--- name: UpdateVariant :one
-UPDATE product_variants
-SET
-    price = $2,
-    attributes = $3
-WHERE
-    id = $1
-RETURNING
-    *;
+-- =======================================
+-- ÓRDENES
+-- =======================================
 
 -- name: CreateOrder :one
 INSERT INTO
@@ -361,19 +411,6 @@ INSERT INTO
         shipping_address_snapshot
     )
 VALUES ($1, $2, $3, $4)
-RETURNING
-    *;
-
--- name: CreateOrderItem :one
-INSERT INTO
-    order_items (
-        order_id,
-        variant_id,
-        quantity,
-        unit_price,
-        subtotal
-    )
-VALUES ($1, $2, $3, $4, $5)
 RETURNING
     *;
 
@@ -393,6 +430,27 @@ WHERE
 RETURNING
     *;
 
+-- =======================================
+-- ÍTEMS DE ÓRDENES
+-- =======================================
+
+-- name: CreateOrderItem :one
+INSERT INTO
+    order_items (
+        order_id,
+        variant_id,
+        quantity,
+        unit_price,
+        subtotal
+    )
+VALUES ($1, $2, $3, $4, $5)
+RETURNING
+    *;
+
+-- =======================================
+-- PAGOS
+-- =======================================
+
 -- name: CreatePayment :one
 INSERT INTO
     payments (
@@ -409,6 +467,10 @@ RETURNING
 -- name: GetPaymentsByOrder :many
 SELECT * FROM payments WHERE order_id = $1;
 
+-- =======================================
+-- PROMOCIONES
+-- =======================================
+
 -- name: GetPromotionByCode :one
 SELECT *
 FROM promotions
@@ -424,6 +486,10 @@ WHERE
         OR valid_until >= NOW()
     );
 
+-- =======================================
+-- DEVOLUCIONES
+-- =======================================
+
 -- name: CreateReturn :one
 INSERT INTO
     returns (
@@ -434,18 +500,5 @@ INSERT INTO
         status
     )
 VALUES ($1, $2, $3, $4, $5)
-RETURNING
-    *;
-
--- name: CheckStock :one
-SELECT stock, reserved_stock FROM inventory WHERE variant_id = $1;
-
--- name: ConfirmStock :one
-UPDATE inventory
-SET
-    stock = stock - $2,
-    reserved_stock = reserved_stock - $2
-WHERE
-    variant_id = $1
 RETURNING
     *;
