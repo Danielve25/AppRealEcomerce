@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
 )
 
 var (
@@ -23,6 +24,11 @@ var (
 
 // InitDB inicializa el pool y las Queries de sqlc
 func InitDB() *Queries {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	once.Do(func() {
 		dbURL := os.Getenv("DATABASE_URL")
 		if dbURL == "" {
