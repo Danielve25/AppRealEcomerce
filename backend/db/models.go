@@ -14,6 +14,14 @@ type Category struct {
 	ParentID pgtype.Int4
 }
 
+type Inventory struct {
+	ID            int32
+	VariantID     pgtype.Int4
+	Stock         int32
+	ReservedStock int32
+	UpdatedAt     pgtype.Timestamp
+}
+
 type InventoryMovement struct {
 	ID           int32
 	VariantID    pgtype.Int4
@@ -79,7 +87,6 @@ type ProductVariant struct {
 	Sku           string
 	Attributes    []byte
 	Price         pgtype.Numeric
-	Stock         int32
 	MinStockAlert int32
 }
 
@@ -131,5 +138,6 @@ type UserAddress struct {
 	Country       string
 	PhoneContact  pgtype.Text
 	IsDefault     pgtype.Bool
+	IsActive      pgtype.Bool
 	CreatedAt     pgtype.Timestamp
 }
