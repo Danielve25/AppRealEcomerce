@@ -650,8 +650,8 @@ OFFSET
 `
 
 type GetAllProductsParams struct {
-	Limit  int32
-	Offset int32
+	Limit  int64
+	Offset int64
 }
 
 type GetAllProductsRow struct {
@@ -659,7 +659,7 @@ type GetAllProductsRow struct {
 	Name        string
 	Description pgtype.Text
 	Image       string
-	PriceFrom   interface{}
+	PriceFrom   pgtype.Numeric
 }
 
 func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error) {
@@ -922,8 +922,8 @@ type GetProductFullByIDRow struct {
 	Description pgtype.Text
 	CreatedAt   pgtype.Timestamp
 	MainImage   string
-	Images      interface{}
-	Variants    interface{}
+	Images      []byte
+	Variants    []byte
 }
 
 // Imagen principal
@@ -1005,8 +1005,8 @@ OFFSET
 
 type GetProductsByCategoryParams struct {
 	CategoryID pgtype.Int4
-	Limit      int32
-	Offset     int32
+	Limit      int64
+	Offset     int64
 }
 
 type GetProductsByCategoryRow struct {
@@ -1014,7 +1014,7 @@ type GetProductsByCategoryRow struct {
 	Name        string
 	Description pgtype.Text
 	Image       string
-	PriceFrom   interface{}
+	PriceFrom   pgtype.Numeric
 }
 
 func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error) {

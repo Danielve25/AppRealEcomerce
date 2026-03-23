@@ -8,3 +8,5 @@ sql:
         package: "db"
         out: "db"
         sql_package: "pgx/v5"
+    database:
+      uri: "postgresql://postgres:postgres123@localhost:5432/postgres"
