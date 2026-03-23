@@ -42,7 +42,7 @@ CREATE TABLE user_addresses (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_user_addresses_user_id ON user_addresses(user_id);
-
+CREATE UNIQUE INDEX idx_user_default_address ON user_addresses(user_id) WHERE is_default = true;
 -- ==========================================
 -- 2. CATÁLOGO DE PRODUCTOS E INVENTARIO
 -- ==========================================
