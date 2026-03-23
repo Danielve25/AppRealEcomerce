@@ -1,5 +1,7 @@
 -- Habilitar la extensión para UUIDs si no está activa
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ==========================================
 -- 1. USUARIOS Y ROLES (Sin cambios)
@@ -14,11 +16,13 @@ CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id INT REFERENCES roles(id),
     name VARCHAR(100) NOT NULL,
-    email VARCHAR(150) UNIQUE NOT NULL,
+    email CITEXT UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_users_role_id ON users(role_id);
+
 
 -- ++++++++++++++++++++++++++++++++++++++++++
 -- [NUEVO] 1.1 DIRECCIONES DE USUARIO
@@ -37,6 +41,7 @@ CREATE TABLE user_addresses (
     is_default BOOLEAN DEFAULT FALSE, -- Dirección de envío predeterminada
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_user_addresses_user_id ON user_addresses(user_id);
 
 -- ==========================================
 -- 2. CATÁLOGO DE PRODUCTOS E INVENTARIO
@@ -55,6 +60,7 @@ CREATE TABLE products (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_products_category_id ON products(category_id);
 
 -- ++++++++++++++++++++++++++++++++++++++++++
 -- [NUEVO] 2.1 IMÁGENES DE PRODUCTO
@@ -68,6 +74,7 @@ CREATE TABLE product_images (
     display_order INT DEFAULT 0, -- Orden para mostrar las imágenes en la galería
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_product_images_product_id ON product_images(product_id);
 
 CREATE TABLE product_variants (
     id SERIAL PRIMARY KEY,
@@ -78,6 +85,7 @@ CREATE TABLE product_variants (
     stock INT NOT NULL DEFAULT 0,
     min_stock_alert INT NOT NULL DEFAULT 5
 );
+CREATE INDEX idx_product_variants_product_id ON product_variants(product_id);
 
 -- ==========================================
 -- 3. KARDEX / MOVIMIENTOS DE INVENTARIO (Sin cambios)
@@ -92,6 +100,9 @@ CREATE TABLE inventory_movements (
     reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_inventory_variant_id ON inventory_movements(variant_id);
+CREATE INDEX idx_inventory_user_id ON inventory_movements(user_id);
+CREATE INDEX idx_inventory_created_at ON inventory_movements(created_at);
 
 -- ==========================================
 -- 4. PEDIDOS Y VENTAS (Actualizado)
@@ -109,6 +120,9 @@ CREATE TABLE orders (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at);
 
 CREATE TABLE order_items (
     id SERIAL PRIMARY KEY,
@@ -118,6 +132,8 @@ CREATE TABLE order_items (
     unit_price DECIMAL(10,2) NOT NULL,
     subtotal DECIMAL(10,2) NOT NULL
 );
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_variant_id ON order_items(variant_id);
 
 -- ==========================================
 -- 5. PAGOS (Sin cambios)
@@ -131,6 +147,9 @@ CREATE TABLE payments (
     status VARCHAR(20) CHECK (status IN ('PENDING', 'COMPLETED', 'FAILED', 'REFUNDED')) DEFAULT 'PENDING',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE INDEX idx_payments_status ON payments(status);
+
 
 -- ==========================================
 -- 6. OPCIONAL: PROMOCIONES Y DEVOLUCIONES (Sin cambios)
@@ -155,3 +174,5 @@ CREATE TABLE returns (
     refund_amount DECIMAL(10,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX idx_returns_order_id ON returns(order_id);
+CREATE INDEX idx_returns_variant_id ON returns(variant_id);
