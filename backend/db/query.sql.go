@@ -96,6 +96,21 @@ func (q *Queries) CountProductsByCategory(ctx context.Context, categoryID pgtype
 	return count, err
 }
 
+const createCategory = `-- name: CreateCategory :one
+
+insert into categories (name) values ($1) returning id, name, parent_id
+`
+
+// =======================================
+// CATEGORÍAS
+// =======================================
+func (q *Queries) CreateCategory(ctx context.Context, name string) (Category, error) {
+	row := q.db.QueryRow(ctx, createCategory, name)
+	var i Category
+	err := row.Scan(&i.ID, &i.Name, &i.ParentID)
+	return i, err
+}
+
 const createInventory = `-- name: CreateInventory :one
 
 INSERT INTO
@@ -1528,21 +1543,6 @@ func (q *Queries) UpdateVariant(ctx context.Context, arg UpdateVariantParams) (P
 		&i.Price,
 		&i.MinStockAlert,
 	)
-	return i, err
-}
-
-const createCategory = `-- name: createCategory :one
-
-insert into categories (name) values ($1) returning id, name, parent_id
-`
-
-// =======================================
-// CATEGORÍAS
-// =======================================
-func (q *Queries) createCategory(ctx context.Context, name string) (Category, error) {
-	row := q.db.QueryRow(ctx, createCategory, name)
-	var i Category
-	err := row.Scan(&i.ID, &i.Name, &i.ParentID)
 	return i, err
 }
 

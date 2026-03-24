@@ -36,7 +36,7 @@ RETURNING
 -- CATEGORÍAS
 -- =======================================
 
--- name: createCategory :one
+-- name: CreateCategory :one
 insert into categories (name) values ($1) returning *;
 
 -- name: getCategories :many

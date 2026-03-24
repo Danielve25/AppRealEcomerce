@@ -27,6 +27,7 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	products := protectedRoutes.Group("/products")
 
 	products.Post("/create", middleware.IsRole(1), handler.CreateProduct)
+	products.Post("/Category", middleware.IsRole(1), handler.CreateCategory)
 
 	auth := api.Group("/auth")
 	auth.Post("/login", handler.Login)
