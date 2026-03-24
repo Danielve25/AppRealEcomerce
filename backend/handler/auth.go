@@ -56,16 +56,24 @@ func Login(c fiber.Ctx) error {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Contraseña incorrecta"})
 	}
 
+	// Extraer el ID de UUID y el valor int32 de RoleID
+	userIDStr := user.ID.String()
+	roleIDVal := int32(0)
+	if user.RoleID.Valid {
+		roleIDVal = user.RoleID.Int32
+	}
+
 	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"role_id": user.RoleID,
-		"exp":     time.Now().Add(time.Hour * 24).Unix(), // 1 día de expiración
+		"user_id": userIDStr,
+		"role_id": roleIDVal,
+		"exp":     time.Now().Add(time.Hour * 24).Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(err)
+		log.Printf("error firmando JWT: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "No se pudo generar el token"})
 	}
 	c.Cookie(&fiber.Cookie{
 		Name:     "jwt",
