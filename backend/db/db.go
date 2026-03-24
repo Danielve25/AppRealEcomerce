@@ -6,60 +6,10 @@ package db
 
 import (
 	"context"
-	"log"
-	"os"
-	"sync"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 )
-
-var (
-	pool    *pgxpool.Pool
-	queries *Queries
-	once    sync.Once
-)
-
-// InitDB inicializa el pool y las Queries de sqlc
-func InitDB() *Queries {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
-	once.Do(func() {
-		dbURL := os.Getenv("DATABASE_URL")
-		if dbURL == "" {
-			log.Fatal("DATABASE_URL no definido")
-		}
-
-		var err error
-		pool, err = pgxpool.New(context.Background(), dbURL)
-		if err != nil {
-			log.Fatalf("Error creando pool de DB: %v", err)
-		}
-
-		queries = New(pool) // <-- tu función sqlc New()
-	})
-	return queries
-}
-
-// GetPool devuelve el pool de conexiones
-func GetPool() *pgxpool.Pool {
-	if pool == nil {
-		InitDB()
-	}
-	return pool
-}
-
-// CloseDB cierra el pool al terminar la app
-func CloseDB() {
-	if pool != nil {
-		pool.Close()
-	}
-}
 
 type DBTX interface {
 	Exec(context.Context, string, ...interface{}) (pgconn.CommandTag, error)
