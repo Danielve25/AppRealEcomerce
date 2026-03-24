@@ -213,6 +213,9 @@ RETURNING
 -- name: GetVariantByID :one
 SELECT * FROM product_variants WHERE id = $1;
 
+-- name: GetVariantBySKU :one
+SELECT * FROM product_variants WHERE sku = $1;
+
 -- name: UpdateVariant :one
 UPDATE product_variants
 SET

@@ -1223,6 +1223,24 @@ func (q *Queries) GetVariantByID(ctx context.Context, id int32) (ProductVariant,
 	return i, err
 }
 
+const getVariantBySKU = `-- name: GetVariantBySKU :one
+SELECT id, product_id, sku, attributes, price, min_stock_alert FROM product_variants WHERE sku = $1
+`
+
+func (q *Queries) GetVariantBySKU(ctx context.Context, sku string) (ProductVariant, error) {
+	row := q.db.QueryRow(ctx, getVariantBySKU, sku)
+	var i ProductVariant
+	err := row.Scan(
+		&i.ID,
+		&i.ProductID,
+		&i.Sku,
+		&i.Attributes,
+		&i.Price,
+		&i.MinStockAlert,
+	)
+	return i, err
+}
+
 const releaseReservedStock = `-- name: ReleaseReservedStock :one
 UPDATE inventory
 SET

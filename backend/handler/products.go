@@ -9,9 +9,9 @@ import (
 )
 
 type VariantInput struct {
-	SKU   string  `json:"sku"`
-	Price float64 `json:"price"`
-	Stock int32   `json:"stock"`
+	SKU   string `json:"sku"`
+	Price string `json:"price"`
+	Stock int32  `json:"stock"`
 }
 
 type CreateProductInput struct {
@@ -31,6 +31,15 @@ func CreateProduct(c fiber.Ctx) error {
 
 	ctx := context.Background()
 
+	// Validar que los SKU no existan ya
+	for _, v := range input.Variants {
+		_, err := queries.GetVariantBySKU(ctx, v.SKU)
+		if err == nil {
+			return c.Status(400).JSON(fiber.Map{"error": "El SKU '" + v.SKU + "' ya existe"})
+		}
+		// Si err != nil, asumimos que no existe (podría ser otro error, pero por simplicidad)
+	}
+
 	// 1. producto
 	product, err := queries.CreateProduct(ctx, db.CreateProductParams{
 		Name:        input.Name,
@@ -38,7 +47,7 @@ func CreateProduct(c fiber.Ctx) error {
 		CategoryID:  pgtype.Int4{Int32: input.CategoryID, Valid: true},
 	})
 	if err != nil {
-		return c.Status(500).JSON(err)
+		return c.Status(500).JSON(fiber.Map{"error": "Error creando producto: " + err.Error()})
 	}
 
 	var createdVariants []interface{}
@@ -51,20 +60,22 @@ func CreateProduct(c fiber.Ctx) error {
 		}
 
 		variant, err := queries.CreateProductVariant(ctx, db.CreateProductVariantParams{
-			ProductID: pgtype.Int4{Int32: product.ID, Valid: true},
-			Sku:       v.SKU,
-			Price:     price,
+			ProductID:  pgtype.Int4{Int32: product.ID, Valid: true},
+			Attributes: []byte(`{}`),
+			Sku:        v.SKU,
+			Price:      price,
 		})
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": "variante"})
+			return c.Status(500).JSON(fiber.Map{"error": "Error creando variante: " + err.Error()})
 		}
 
 		_, err = queries.CreateInventory(ctx, db.CreateInventoryParams{
-			VariantID: variant.ProductID,
-			Stock:     v.Stock,
+			VariantID: pgtype.Int4{Int32: variant.ID, Valid: true},
+
+			Stock: v.Stock,
 		})
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": "stock"})
+			return c.Status(500).JSON(fiber.Map{"error": "Error creando inventario: " + err.Error()})
 		}
 
 		createdVariants = append(createdVariants, variant)
