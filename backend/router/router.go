@@ -3,6 +3,7 @@ package router
 import (
 	"app/db"
 	"app/handler"
+	"app/middleware"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -20,6 +21,12 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	api.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
+
+	protectedRoutes := api.Group("/", middleware.AuthRequired)
+
+	products := protectedRoutes.Group("/products")
+
+	products.Post("/create", middleware.IsRole(1), handler.CreateProduct)
 
 	auth := api.Group("/auth")
 	auth.Post("/login", handler.Login)
