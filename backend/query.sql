@@ -116,13 +116,15 @@ WHERE
     AND p.is_active = true;
 
 -- name: GetAllProducts :many
-SELECT p.id, p.name, p.description, (
-        SELECT image_url
-        FROM product_images pi
-        WHERE
-            pi.product_id = p.id
-            AND pi.is_primary = true
-        LIMIT 1
+SELECT p.id, p.name, p.description, COALESCE(
+        (
+            SELECT image_url
+            FROM product_images pi
+            WHERE
+                pi.product_id = p.id
+                AND pi.is_primary = true
+            LIMIT 1
+        ), ''
     ) AS image, (
         SELECT MIN(price)
         FROM product_variants pv

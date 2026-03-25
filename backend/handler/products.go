@@ -153,3 +153,30 @@ func GetProductByID(c fiber.Ctx) error {
 
 	return c.JSON(response)
 }
+
+func GetAllProducts(c fiber.Ctx) error {
+
+	var limitstr string = c.Query("limit", "10")
+	var offsetstr string = c.Query("offset", "0")
+
+	limit, err := strconv.ParseInt(limitstr, 10, 64)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Parámetro 'limit' inválido"})
+	}
+	offset, err := strconv.ParseInt(offsetstr, 10, 64)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Parámetro 'offset' inválido"})
+	}
+
+	queries := c.Locals("queries").(*db.Queries)
+
+	products, err := queries.GetAllProducts(context.Background(), db.GetAllProductsParams{
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Error obteniendo productos: " + err.Error()})
+	}
+
+	return c.JSON(products)
+}

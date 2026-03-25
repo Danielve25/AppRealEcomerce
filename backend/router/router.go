@@ -32,11 +32,14 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	products := protectedRoutes.Group("/products")
 
 	products.Post("/create", middleware.IsRole(1), handler.CreateProduct)
-	products.Get("/:id", handler.GetProductByID)
+
 	products.Post("/category", middleware.IsRole(1), handler.CreateCategory)
 	products.Post("/subcategory", middleware.IsRole(1), handler.CreateSubCategory)
+
 	products.Get("/subcategory/:id", handler.GetSubCategories)
 	products.Get("/category", handler.GetCategories)
 	products.Get("/category/:id", handler.GetCategoryByID)
 
+	products.Get("/get/all", handler.GetAllProducts)
+	products.Get("/:id", handler.GetProductByID) // SIEMPRE de último
 }
