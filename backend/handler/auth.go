@@ -122,6 +122,10 @@ func Register(c fiber.Ctx) error {
 	// Obtener queries desde el contexto
 	queries := c.Locals("queries").(*db.Queries)
 
+	if _, err := queries.GetUserByEmail(context.Background(), email); err == nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "El email ya está registrado"})
+	}
+
 	user, err := queries.CreateUser(context.Background(), db.CreateUserParams{
 		Name:         name,
 		Email:        email,
