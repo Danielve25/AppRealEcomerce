@@ -39,7 +39,10 @@ RETURNING
 -- name: CreateCategory :one
 insert into categories (name) values ($1) returning *;
 
--- name: getCategories :many
+-- name: CreateSubCategory :one
+insert into categories (name, parent_id) values ($1, $2) returning *;
+
+-- name: GetCategories :many
 select * from categories;
 
 -- name: GetCategoryByID :one

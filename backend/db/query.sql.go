@@ -500,6 +500,22 @@ func (q *Queries) CreateReturn(ctx context.Context, arg CreateReturnParams) (Ret
 	return i, err
 }
 
+const createSubCategory = `-- name: CreateSubCategory :one
+insert into categories (name, parent_id) values ($1, $2) returning id, name, parent_id
+`
+
+type CreateSubCategoryParams struct {
+	Name     string
+	ParentID pgtype.Int4
+}
+
+func (q *Queries) CreateSubCategory(ctx context.Context, arg CreateSubCategoryParams) (Category, error) {
+	row := q.db.QueryRow(ctx, createSubCategory, arg.Name, arg.ParentID)
+	var i Category
+	err := row.Scan(&i.ID, &i.Name, &i.ParentID)
+	return i, err
+}
+
 const createUser = `-- name: CreateUser :one
 insert into
     users (
@@ -693,6 +709,30 @@ func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) 
 			&i.Image,
 			&i.PriceFrom,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCategories = `-- name: GetCategories :many
+select id, name, parent_id from categories
+`
+
+func (q *Queries) GetCategories(ctx context.Context) ([]Category, error) {
+	rows, err := q.db.Query(ctx, getCategories)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Category
+	for rows.Next() {
+		var i Category
+		if err := rows.Scan(&i.ID, &i.Name, &i.ParentID); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -1562,28 +1602,4 @@ func (q *Queries) UpdateVariant(ctx context.Context, arg UpdateVariantParams) (P
 		&i.MinStockAlert,
 	)
 	return i, err
-}
-
-const getCategories = `-- name: getCategories :many
-select id, name, parent_id from categories
-`
-
-func (q *Queries) getCategories(ctx context.Context) ([]Category, error) {
-	rows, err := q.db.Query(ctx, getCategories)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Category
-	for rows.Next() {
-		var i Category
-		if err := rows.Scan(&i.ID, &i.Name, &i.ParentID); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }

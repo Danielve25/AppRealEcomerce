@@ -86,28 +86,3 @@ func CreateProduct(c fiber.Ctx) error {
 		"variants": createdVariants,
 	})
 }
-
-type CreateCategoryInput struct {
-	Name string `json:"name"`
-}
-
-func CreateCategory(c fiber.Ctx) error {
-	queries := c.Locals("queries").(*db.Queries)
-
-	var input CreateCategoryInput
-
-	name := input.Name
-	if name == "" {
-		return c.Status(400).JSON(fiber.Map{"error": "El nombre de la categoría es requerido"})
-	}
-	if err := c.Bind().Body(&input); err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "JSON inválido"})
-	}
-
-	category, err := queries.CreateCategory(context.Background(), name)
-	if err != nil {
-		return c.Status(500).JSON(err)
-	}
-
-	return c.JSON(category)
-}
