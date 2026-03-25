@@ -933,13 +933,16 @@ func (q *Queries) GetPaymentsByOrder(ctx context.Context, orderID pgtype.UUID) (
 const getProductFullByID = `-- name: GetProductFullByID :one
 SELECT p.id, p.name, p.description, p.created_at,
 
-(
-    SELECT image_url
-    FROM product_images pi
-    WHERE
-        pi.product_id = p.id
-        AND pi.is_primary = true
-    LIMIT 1
+COALESCE(
+    (
+        SELECT image_url
+        FROM product_images pi
+        WHERE
+            pi.product_id = p.id
+            AND pi.is_primary = true
+        LIMIT 1
+    ),
+    ''
 ) AS main_image,
 
 COALESCE(
@@ -976,7 +979,7 @@ type GetProductFullByIDRow struct {
 	Name        string
 	Description pgtype.Text
 	CreatedAt   pgtype.Timestamp
-	MainImage   string
+	MainImage   pgtype.Text
 	Images      []byte
 	Variants    []byte
 }

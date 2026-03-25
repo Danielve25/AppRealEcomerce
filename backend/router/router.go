@@ -18,6 +18,11 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 
 	api := app.Group("/api", logger.New())
 
+	auth := api.Group("/auth")
+	auth.Post("/login", handler.Login)
+	auth.Post("/register", handler.Register)
+	auth.Post("/logout", handler.Logout)
+
 	api.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
@@ -27,14 +32,11 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	products := protectedRoutes.Group("/products")
 
 	products.Post("/create", middleware.IsRole(1), handler.CreateProduct)
+	products.Get("/:id", handler.GetProductByID)
 	products.Post("/category", middleware.IsRole(1), handler.CreateCategory)
 	products.Post("/subcategory", middleware.IsRole(1), handler.CreateSubCategory)
 	products.Get("/subcategory/:id", handler.GetSubCategories)
 	products.Get("/category", handler.GetCategories)
 	products.Get("/category/:id", handler.GetCategoryByID)
 
-	auth := api.Group("/auth")
-	auth.Post("/login", handler.Login)
-	auth.Post("/register", handler.Register)
-	auth.Post("/logout", handler.Logout)
 }

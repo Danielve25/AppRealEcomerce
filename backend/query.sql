@@ -73,13 +73,16 @@ RETURNING
 SELECT p.id, p.name, p.description, p.created_at,
 
 -- Imagen principal
-(
-    SELECT image_url
-    FROM product_images pi
-    WHERE
-        pi.product_id = p.id
-        AND pi.is_primary = true
-    LIMIT 1
+COALESCE(
+    (
+        SELECT image_url
+        FROM product_images pi
+        WHERE
+            pi.product_id = p.id
+            AND pi.is_primary = true
+        LIMIT 1
+    ),
+    ''
 ) AS main_image,
 
 -- Todas las imágenes

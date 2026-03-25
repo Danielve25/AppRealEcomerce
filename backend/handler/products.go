@@ -3,6 +3,8 @@ package handler
 import (
 	"app/db"
 	"context"
+	"encoding/json"
+	"strconv"
 
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -19,6 +21,21 @@ type CreateProductInput struct {
 	Description string         `json:"description"`
 	CategoryID  int32          `json:"category_id"`
 	Variants    []VariantInput `json:"variants"`
+}
+type VariantResponse struct {
+	ID         int32                  `json:"id"`
+	SKU        string                 `json:"sku"`
+	Attributes map[string]interface{} `json:"attributes"`
+	Price      float64                `json:"price"`
+}
+type ProductResponse struct {
+	ID          int32             `json:"id"`
+	Name        string            `json:"name"`
+	Description pgtype.Text       `json:"description"`
+	CreatedAt   pgtype.Timestamp  `json:"created_at"`
+	MainImage   pgtype.Text       `json:"main_image"`
+	Images      []string          `json:"images"`
+	Variants    []VariantResponse `json:"variants"`
 }
 
 func CreateProduct(c fiber.Ctx) error {
@@ -85,4 +102,54 @@ func CreateProduct(c fiber.Ctx) error {
 		"product":  product,
 		"variants": createdVariants,
 	})
+}
+
+func GetProductByID(c fiber.Ctx) error {
+	queries := c.Locals("queries").(*db.Queries)
+
+	idStr := c.Params("id")
+	if idStr == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+	}
+
+	idInt, err := strconv.Atoi(idStr)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
+	}
+
+	product, err := queries.GetProductFullByID(context.Background(), int32(idInt))
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Error obteniendo producto: " + err.Error()})
+	}
+
+	// Parsear images
+	var images []string
+	if len(product.Images) > 0 {
+		err = json.Unmarshal(product.Images, &images)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Error parseando imágenes"})
+		}
+	}
+
+	// Parsear variants
+	var variants []VariantResponse
+	if len(product.Variants) > 0 {
+		err = json.Unmarshal(product.Variants, &variants)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{"error": "Error parseando variantes"})
+		}
+	}
+
+	response := ProductResponse{
+		ID:          product.ID,
+		Name:        product.Name,
+		Description: product.Description,
+		CreatedAt:   product.CreatedAt,
+		MainImage:   product.MainImage,
+		Images:      images,
+		Variants:    variants,
+	}
+
+	return c.JSON(response)
 }

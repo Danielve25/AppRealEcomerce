@@ -5,6 +5,7 @@ CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE EXTENSION IF NOT EXISTS plpgsql;
 -- ==========================================
 -- 1. USUARIOS Y ROLES (Sin cambios)
 -- ==========================================
