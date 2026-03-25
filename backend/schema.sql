@@ -1,6 +1,8 @@
 -- Habilitar la extensión para UUIDs si no está activa
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+ALTER DATABASE postgres SET timezone TO 'America/Bogota';
+
 CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
