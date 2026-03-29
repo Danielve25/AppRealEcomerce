@@ -23,6 +23,11 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	auth.Post("/register", handler.Register)
 	auth.Post("/logout", handler.Logout)
 
+	public := api.Group("/public")
+	public.Get("/products", handler.GetAllProducts)
+	public.Get("/products/category/:id", handler.GetProductsByCategory)
+	public.Get("/products/:id", handler.GetProductByID)
+
 	api.Get("/", func(c fiber.Ctx) error {
 		return c.SendString("Hello, World!")
 	})
@@ -30,16 +35,13 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	protectedRoutes := api.Group("/", middleware.AuthRequired)
 
 	products := protectedRoutes.Group("/products")
-
-	products.Post("/create", middleware.IsRole(1), handler.CreateProduct)
-
-	products.Post("/category", middleware.IsRole(1), handler.CreateCategory)
-	products.Post("/subcategory", middleware.IsRole(1), handler.CreateSubCategory)
-
 	products.Get("/subcategory/:id", handler.GetSubCategories)
 	products.Get("/category", handler.GetCategories)
 	products.Get("/category/:id", handler.GetCategoryByID)
 
-	products.Get("/get/all", handler.GetAllProducts)
-	products.Get("/:id", handler.GetProductByID) // SIEMPRE de último
+	productsAdmin := products.Group("/admin", middleware.IsRole(1))
+	productsAdmin.Post("/create", middleware.IsRole(1), handler.CreateProduct)
+	productsAdmin.Post("/category", middleware.IsRole(1), handler.CreateCategory)
+	productsAdmin.Post("/subcategory", middleware.IsRole(1), handler.CreateSubCategory)
+
 }

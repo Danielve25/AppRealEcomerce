@@ -38,6 +38,12 @@ type ProductResponse struct {
 	Variants    []VariantResponse `json:"variants"`
 }
 
+type UpdateProductInput struct {
+	Name        *string `json:"name"`
+	Description *string `json:"description"`
+	CategoryID  *int32  `json:"category_id"`
+}
+
 func CreateProduct(c fiber.Ctx) error {
 	queries := c.Locals("queries").(*db.Queries)
 	var input CreateProductInput
@@ -176,6 +182,40 @@ func GetAllProducts(c fiber.Ctx) error {
 	})
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Error obteniendo productos: " + err.Error()})
+	}
+
+	return c.JSON(products)
+}
+
+func GetProductsByCategory(c fiber.Ctx) error {
+	categoryIDStr := c.Params("id")
+	limitStr := c.Query("limit", "10")
+	offsetStr := c.Query("offset", "0")
+
+	ID, err := strconv.ParseInt(categoryIDStr, 10, 32)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID de categoría inválido"})
+	}
+
+	limit, err := strconv.ParseInt(limitStr, 10, 64)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Parámetro 'limit' inválido"})
+	}
+
+	offset, err := strconv.ParseInt(offsetStr, 10, 64)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "Parámetro 'offset' inválido"})
+	}
+
+	queries := c.Locals("queries").(*db.Queries)
+
+	products, err := queries.GetProductsByCategory(context.Background(), db.GetProductsByCategoryParams{
+		CategoryID: pgtype.Int4{Int32: int32(ID), Valid: true},
+		Limit:      int64(limit),
+		Offset:     int64(offset),
+	})
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Error obteniendo productos por categoría: " + err.Error()})
 	}
 
 	return c.JSON(products)

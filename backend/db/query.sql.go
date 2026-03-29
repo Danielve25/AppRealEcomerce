@@ -998,6 +998,7 @@ type GetProductFullByIDRow struct {
 	Variants    []byte
 }
 
+// ✅
 // Imagen principal
 // Todas las imágenes
 // Variantes
@@ -1017,18 +1018,26 @@ func (q *Queries) GetProductFullByID(ctx context.Context, id int32) (GetProductF
 }
 
 const getProductsByCategory = `-- name: GetProductsByCategory :many
-SELECT p.id, p.name, p.description, (
-        SELECT image_url
-        FROM product_images pi
-        WHERE
-            pi.product_id = p.id
-            AND pi.is_primary = true
-        LIMIT 1
-    ) AS image, (
-        SELECT MIN(price)
-        FROM product_variants pv
-        WHERE
-            pv.product_id = p.id
+SELECT p.id, p.name, p.description,
+    -- If no image is found, return an empty string instead of NULL
+    COALESCE(
+        (
+            SELECT image_url
+            FROM product_images pi
+            WHERE
+                pi.product_id = p.id
+                AND pi.is_primary = true
+            LIMIT 1
+        ), ''
+    ) AS image,
+    -- If no price is found, return 0 (or a default numeric value)
+    COALESCE(
+        (
+            SELECT MIN(price)
+            FROM product_variants pv
+            WHERE
+                pv.product_id = p.id
+        ), 0
     ) AS price_from
 FROM products p
 WHERE
@@ -1050,10 +1059,11 @@ type GetProductsByCategoryRow struct {
 	ID          int32
 	Name        string
 	Description pgtype.Text
-	Image       string
+	Image       pgtype.Text
 	PriceFrom   pgtype.Numeric
 }
 
+// ✅
 func (q *Queries) GetProductsByCategory(ctx context.Context, arg GetProductsByCategoryParams) ([]GetProductsByCategoryRow, error) {
 	rows, err := q.db.Query(ctx, getProductsByCategory, arg.CategoryID, arg.Limit, arg.Offset)
 	if err != nil {
@@ -1423,9 +1433,15 @@ func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusPa
 const updateProduct = `-- name: UpdateProduct :one
 UPDATE products
 SET
-    category_id = $2,
-    name = $3,
-    description = $4
+    category_id = COALESCE(
+        $2,
+        category_id
+    ),
+    name = COALESCE($3, name),
+    description = COALESCE(
+        $4,
+        description
+    )
 WHERE
     id = $1
 RETURNING
@@ -1435,7 +1451,7 @@ RETURNING
 type UpdateProductParams struct {
 	ID          int32
 	CategoryID  pgtype.Int4
-	Name        string
+	Name        pgtype.Text
 	Description pgtype.Text
 }
 

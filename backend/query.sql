@@ -148,19 +148,28 @@ OFFSET
 -- name: CountAllProducts :one
 SELECT COUNT(*) FROM products WHERE is_active = true;
 
+-- ✅
 -- name: GetProductsByCategory :many
-SELECT p.id, p.name, p.description, (
-        SELECT image_url
-        FROM product_images pi
-        WHERE
-            pi.product_id = p.id
-            AND pi.is_primary = true
-        LIMIT 1
-    ) AS image, (
-        SELECT MIN(price)
-        FROM product_variants pv
-        WHERE
-            pv.product_id = p.id
+SELECT p.id, p.name, p.description,
+    -- If no image is found, return an empty string instead of NULL
+    COALESCE(
+        (
+            SELECT image_url
+            FROM product_images pi
+            WHERE
+                pi.product_id = p.id
+                AND pi.is_primary = true
+            LIMIT 1
+        ), ''
+    ) AS image,
+    -- If no price is found, return 0 (or a default numeric value)
+    COALESCE(
+        (
+            SELECT MIN(price)
+            FROM product_variants pv
+            WHERE
+                pv.product_id = p.id
+        ), 0
     ) AS price_from
 FROM products p
 WHERE
@@ -181,9 +190,15 @@ WHERE
 -- name: UpdateProduct :one
 UPDATE products
 SET
-    category_id = $2,
-    name = $3,
-    description = $4
+    category_id = COALESCE(
+        sqlc.narg ('category_id'),
+        category_id
+    ),
+    name = COALESCE(sqlc.narg ('name'), name),
+    description = COALESCE(
+        sqlc.narg ('description'),
+        description
+    )
 WHERE
     id = $1
 RETURNING
