@@ -97,13 +97,13 @@ func (q *Queries) CountProductsByCategory(ctx context.Context, categoryID pgtype
 }
 
 const createCategory = `-- name: CreateCategory :one
-
 insert into categories (name) values ($1) returning id, name, parent_id
 `
 
 // =======================================
 // CATEGORÍAS
 // =======================================
+// ✅
 func (q *Queries) CreateCategory(ctx context.Context, name string) (Category, error) {
 	row := q.db.QueryRow(ctx, createCategory, name)
 	var i Category
@@ -132,6 +132,7 @@ type CreateInventoryParams struct {
 // =======================================
 // INVENTARIO
 // =======================================
+// ✅
 func (q *Queries) CreateInventory(ctx context.Context, arg CreateInventoryParams) (Inventory, error) {
 	row := q.db.QueryRow(ctx, createInventory, arg.VariantID, arg.Stock)
 	var i Inventory
@@ -335,6 +336,7 @@ func (q *Queries) CreatePayment(ctx context.Context, arg CreatePaymentParams) (P
 }
 
 const createProduct = `-- name: CreateProduct :one
+
 INSERT INTO
     products (
         category_id,
@@ -352,6 +354,10 @@ type CreateProductParams struct {
 	Description pgtype.Text
 }
 
+// =======================================
+// PRODUCTOS
+// =======================================
+// ✅
 func (q *Queries) CreateProduct(ctx context.Context, arg CreateProductParams) (Product, error) {
 	row := q.db.QueryRow(ctx, createProduct, arg.CategoryID, arg.Name, arg.Description)
 	var i Product
@@ -433,6 +439,7 @@ type CreateProductVariantParams struct {
 // =======================================
 // VARIANTES DE PRODUCTOS
 // =======================================
+// ✅
 func (q *Queries) CreateProductVariant(ctx context.Context, arg CreateProductVariantParams) (ProductVariant, error) {
 	row := q.db.QueryRow(ctx, createProductVariant,
 		arg.ProductID,
@@ -509,6 +516,7 @@ type CreateSubCategoryParams struct {
 	ParentID pgtype.Int4
 }
 
+// ✅
 func (q *Queries) CreateSubCategory(ctx context.Context, arg CreateSubCategoryParams) (Category, error) {
 	row := q.db.QueryRow(ctx, createSubCategory, arg.Name, arg.ParentID)
 	var i Category
@@ -538,6 +546,7 @@ type CreateUserParams struct {
 	IsActive     pgtype.Bool
 }
 
+// ✅
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
 		arg.RoleID,
@@ -695,6 +704,7 @@ type GetAllProductsRow struct {
 	PriceFrom   pgtype.Numeric
 }
 
+// ✅
 func (q *Queries) GetAllProducts(ctx context.Context, arg GetAllProductsParams) ([]GetAllProductsRow, error) {
 	rows, err := q.db.Query(ctx, getAllProducts, arg.Limit, arg.Offset)
 	if err != nil {
@@ -725,6 +735,7 @@ const getCategories = `-- name: GetCategories :many
 select id, name, parent_id from categories
 `
 
+// ✅
 func (q *Queries) GetCategories(ctx context.Context) ([]Category, error) {
 	rows, err := q.db.Query(ctx, getCategories)
 	if err != nil {
@@ -749,6 +760,7 @@ const getCategoryByID = `-- name: GetCategoryByID :one
 SELECT id, name, parent_id FROM categories WHERE id = $1
 `
 
+// ✅
 func (q *Queries) GetCategoryByID(ctx context.Context, id int32) (Category, error) {
 	row := q.db.QueryRow(ctx, getCategoryByID, id)
 	var i Category
@@ -1004,41 +1016,6 @@ func (q *Queries) GetProductFullByID(ctx context.Context, id int32) (GetProductF
 	return i, err
 }
 
-const getProducts = `-- name: GetProducts :many
-
-SELECT id, category_id, name, description, is_active, created_at FROM products
-`
-
-// =======================================
-// PRODUCTOS
-// =======================================
-func (q *Queries) GetProducts(ctx context.Context) ([]Product, error) {
-	rows, err := q.db.Query(ctx, getProducts)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Product
-	for rows.Next() {
-		var i Product
-		if err := rows.Scan(
-			&i.ID,
-			&i.CategoryID,
-			&i.Name,
-			&i.Description,
-			&i.IsActive,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getProductsByCategory = `-- name: GetProductsByCategory :many
 SELECT p.id, p.name, p.description, (
         SELECT image_url
@@ -1142,6 +1119,7 @@ const getSubCategories = `-- name: GetSubCategories :many
 SELECT id, name, parent_id FROM categories WHERE parent_id = $1
 `
 
+// ✅
 func (q *Queries) GetSubCategories(ctx context.Context, parentID pgtype.Int4) ([]Category, error) {
 	rows, err := q.db.Query(ctx, getSubCategories, parentID)
 	if err != nil {
@@ -1216,6 +1194,7 @@ SELECT id, role_id, name, email, password_hash, is_active, created_at FROM users
 // =======================================
 // USUARIOS
 // =======================================
+// ✅
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, getUserByEmail, email)
 	var i User

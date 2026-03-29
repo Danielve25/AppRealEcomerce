@@ -2,9 +2,11 @@
 -- USUARIOS
 -- =======================================
 
+-- ✅
 -- name: GetUserByEmail :one
 SELECT * FROM users WHERE email = $1 LIMIT 1;
 
+-- ✅
 -- name: CreateUser :one
 insert into
     users (
@@ -35,19 +37,23 @@ RETURNING
 -- =======================================
 -- CATEGORÍAS
 -- =======================================
-
+-- ✅
 -- name: CreateCategory :one
 insert into categories (name) values ($1) returning *;
 
+-- ✅
 -- name: CreateSubCategory :one
 insert into categories (name, parent_id) values ($1, $2) returning *;
 
+-- ✅
 -- name: GetCategories :many
 select * from categories;
 
+-- ✅
 -- name: GetCategoryByID :one
 SELECT * FROM categories WHERE id = $1;
 
+-- ✅
 -- name: GetSubCategories :many
 SELECT * FROM categories WHERE parent_id = $1;
 
@@ -55,9 +61,7 @@ SELECT * FROM categories WHERE parent_id = $1;
 -- PRODUCTOS
 -- =======================================
 
--- name: GetProducts :many
-SELECT * FROM products;
-
+-- ✅
 -- name: CreateProduct :one
 INSERT INTO
     products (
@@ -69,6 +73,7 @@ VALUES ($1, $2, $3)
 RETURNING
     *;
 
+-- ✅
 -- name: GetProductFullByID :one
 SELECT p.id, p.name, p.description, p.created_at,
 
@@ -115,6 +120,7 @@ WHERE
     p.id = $1
     AND p.is_active = true;
 
+-- ✅
 -- name: GetAllProducts :many
 SELECT p.id, p.name, p.description, COALESCE(
         (
@@ -206,6 +212,7 @@ RETURNING
 -- VARIANTES DE PRODUCTOS
 -- =======================================
 
+-- ✅
 -- name: CreateProductVariant :one
 INSERT INTO
     product_variants (
@@ -238,6 +245,7 @@ RETURNING
 -- INVENTARIO
 -- =======================================
 
+-- ✅
 -- name: CreateInventory :one
 INSERT INTO
     inventory (variant_id, stock)
