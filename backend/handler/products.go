@@ -220,3 +220,45 @@ func GetProductsByCategory(c fiber.Ctx) error {
 
 	return c.JSON(products)
 }
+
+func UpdateProduct(c fiber.Ctx) error {
+	queries := c.Locals("queries").(*db.Queries)
+
+	idStr := c.Params("id") // Devuelve string directamente
+	if idStr == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "ID requerido"})
+	}
+
+	idInt, err := strconv.ParseInt(idStr, 10, 32)
+	if err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ID con formato inválido"})
+	}
+	var input UpdateProductInput
+	if err := c.Bind().Body(&input); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "JSON inválido"})
+	}
+
+	// Preparamos los parámetros para SQLc usando punteros a tipos de pgtype
+	params := db.UpdateProductParams{
+		ID: int32(idInt),
+	}
+
+	// Solo asignamos si el puntero no es nil
+	if input.Name != nil {
+		params.Name = pgtype.Text{String: *input.Name, Valid: true}
+	}
+	if input.Description != nil {
+		params.Description = pgtype.Text{String: *input.Description, Valid: true}
+	}
+	if input.CategoryID != nil {
+		params.CategoryID = pgtype.Int4{Int32: *input.CategoryID, Valid: true}
+	}
+
+	// Nota: Usa c.Context() para propagar la cancelación de la request
+	product, err := queries.UpdateProduct(c.Context(), params)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Error en DB: " + err.Error()})
+	}
+
+	return c.JSON(product)
+}

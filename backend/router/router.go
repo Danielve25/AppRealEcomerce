@@ -43,5 +43,6 @@ func SetupRoutes(app *fiber.App, queries *db.Queries) {
 	productsAdmin.Post("/create", middleware.IsRole(1), handler.CreateProduct)
 	productsAdmin.Post("/category", middleware.IsRole(1), handler.CreateCategory)
 	productsAdmin.Post("/subcategory", middleware.IsRole(1), handler.CreateSubCategory)
+	productsAdmin.Patch("/update/:id", middleware.IsRole(1), handler.UpdateProduct)
 
 }
