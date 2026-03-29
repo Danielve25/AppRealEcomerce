@@ -38,10 +38,16 @@ type ProductResponse struct {
 	Variants    []VariantResponse `json:"variants"`
 }
 
+type UpdateVariantInput struct {
+	ID         int32   `json:"id"`
+	Price      *string `json:"price"`
+	Attributes []byte  `json:"attributes"`
+}
 type UpdateProductInput struct {
-	Name        *string `json:"name"`
-	Description *string `json:"description"`
-	CategoryID  *int32  `json:"category_id"`
+	Name        *string              `json:"name"`
+	Description *string              `json:"description"`
+	CategoryID  *int32               `json:"category_id"`
+	Variants    []UpdateVariantInput `json:"variants"`
 }
 
 func CreateProduct(c fiber.Ctx) error {
@@ -224,26 +230,29 @@ func GetProductsByCategory(c fiber.Ctx) error {
 func UpdateProduct(c fiber.Ctx) error {
 	queries := c.Locals("queries").(*db.Queries)
 
-	idStr := c.Params("id") // Devuelve string directamente
-	if idStr == "" {
-		return c.Status(400).JSON(fiber.Map{"error": "ID requerido"})
+	// 1. Obtener ID del producto
+	idInt := c.Params("id")
+	if idInt == "" {
+		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
 	}
 
-	idInt, err := strconv.ParseInt(idStr, 10, 32)
+	ID, err := strconv.ParseInt(idInt, 10, 32)
 	if err != nil {
-		return c.Status(400).JSON(fiber.Map{"error": "ID con formato inválido"})
+		return c.Status(400).JSON(fiber.Map{"error": "ID inválido"})
 	}
+
 	var input UpdateProductInput
 	if err := c.Bind().Body(&input); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "JSON inválido"})
 	}
 
-	// Preparamos los parámetros para SQLc usando punteros a tipos de pgtype
+	ctx := c.Context()
+
+	// 2. Actualizar datos básicos del producto
 	params := db.UpdateProductParams{
-		ID: int32(idInt),
+		ID: int32(ID),
 	}
 
-	// Solo asignamos si el puntero no es nil
 	if input.Name != nil {
 		params.Name = pgtype.Text{String: *input.Name, Valid: true}
 	}
@@ -254,10 +263,41 @@ func UpdateProduct(c fiber.Ctx) error {
 		params.CategoryID = pgtype.Int4{Int32: *input.CategoryID, Valid: true}
 	}
 
-	// Nota: Usa c.Context() para propagar la cancelación de la request
-	product, err := queries.UpdateProduct(c.Context(), params)
+	product, err := queries.UpdateProduct(ctx, params)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{"error": "Error en DB: " + err.Error()})
+		return c.Status(500).JSON(fiber.Map{"error": "Error al actualizar producto: " + err.Error()})
+	}
+
+	// 3. Actualizar variantes si vienen en el JSON
+	for _, v := range input.Variants {
+		if v.ID == 0 {
+			continue // Saltamos si no trae ID de variante
+		}
+
+		// Preparamos parámetros de la variante
+		varParams := db.UpdateVariantParams{
+			ID: v.ID,
+		}
+
+		// Si el precio no es nil, lo escaneamos
+		if v.Price != nil {
+			var price pgtype.Numeric
+			if err := price.Scan(*v.Price); err == nil {
+				varParams.Price = price
+			}
+		}
+
+		// Si trae atributos, los asignamos
+		if v.Attributes != nil {
+			varParams.Attributes = v.Attributes
+		}
+
+		// Ejecutamos la actualización de la variante
+		_, err := queries.UpdateVariant(ctx, varParams)
+		if err != nil {
+			// Nota: Al no haber transacción, si una falla, las anteriores sí se quedaron guardadas
+			return c.Status(500).JSON(fiber.Map{"error": "Error al actualizar variante " + strconv.Itoa(int(v.ID))})
+		}
 	}
 
 	return c.JSON(product)
